@@ -50,8 +50,7 @@ def run_network_checkup(stdscr):
             stdscr.addstr("[ONLINE]", curses.color_pair(1)) # Green
             stdscr.attroff(curses.A_BOLD)
         else:
-            # Let's use red for offline if possible, otherwise just plain text
-            stdscr.addstr("[OFFLINE]", curses.color_pair(2)) # Red
+            stdscr.addstr("[OFFLINE]")
 
     stdscr.addstr(h - 3, 5, "SCAN COMPLETE. PRESS ANY KEY TO RETURN.")
     stdscr.refresh()
