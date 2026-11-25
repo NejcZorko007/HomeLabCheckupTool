@@ -1,94 +1,95 @@
-
-
 # 🏠 HomeLab Checkup Tool
 
-HomeLab Checkup Tool is a terminal-based Python application for monitoring the status of devices in your home lab network. It provides a simple, interactive menu interface to check which devices are online or offline using ICMP ping, making it easy to keep track of your network health.
+A small terminal tool that shows which devices and services in your home lab are up. Checks run in parallel, so even a big list finishes in about a second. You get a simple arrow-key menu, or you can run it with no menu from cron and scripts.
 
+<!-- TODO: add a screenshot or GIF of a scan here, e.g. docs/screenshot.png -->
 
 ## ✨ Features
 
-
-- **🖧 Network Device Status Scanning**
-   - 📡 Pings a customizable list of devices (IP addresses or hostnames) and displays their online/offline status in real time.
-   - Uses color-coded output for quick recognition: green for online, red for offline.
-   - Aligns device names, IPs, and status for clear readability.
-
-- **🖥️ Interactive Terminal Menu**
-   - Navigate options using the arrow keys and select with Enter.
-   - Menu options include running a network checkup, viewing information about the tool, and exiting.
-
-- **ℹ️ About Section**
-   - Displays information about the tool and its intended use for home lab owners.
-
-
-## ⚙️ How It Works
-
-1. The tool presents a menu in your terminal window.
-2. Selecting "Network Checkup Tool" will ping each device in the configured list and display their status.
-3. The results are shown in a formatted table, with online/offline status clearly indicated.
-4. You can return to the menu or exit at any time.
-
+- **🖧 Network Checkup:** pings every device in your list in parallel and shows each result as it arrives, with latency.
+  - 🟢 `ONLINE` / 🔴 `OFFLINE`
+  - 🟡 `SERVICE DOWN`: the device answers ping, but the service port you set (for example Proxmox on 8006) doesn't.
+- **🧰 Quick tools:** Quick Ping, Port Check (IPv4 and IPv6), DNS Lookup, Traceroute, Local Network Info.
+- **📝 Reports:** save the last scan to a text file.
+- **🤖 Script mode:** `--once` prints the results and exits with code `1` if anything is down. Add `--json` for machine-readable output (cron, n8n, Home Assistant, shell scripts).
+- **🖥️ Cross-platform:** Linux, macOS and Windows. Handles each OS's `ping` differences.
 
 ## 🛠️ Requirements
 
-- Python 3.11.6 or newer
-- 🐧 Linux, macOS, or Windows (tested on Linux)
-- `ping` command available in your system's PATH
-
+- Python 3.8 or newer
+- The `ping` command (preinstalled on almost every system)
+- `traceroute` (Linux/macOS) for the Traceroute tool. Optional.
 
 ## 🚀 Installation
 
-1. 📥 **Clone the repository:**
-   ```bash
-   git clone https://github.com/NejcZorko007/HomeLabCheckupTool.git
-   cd HomeLabCheckupTool
-   ```
+```bash
+git clone https://github.com/NejcZorko007/HomeLabCheckupTool.git
+cd HomeLabCheckupTool
+pip install -r requirements.txt   # only installs windows-curses on Windows
+cp devices.example.json devices.json
+```
 
-2. 📦 **Install required Python packages:**
-   - On Linux/macOS, the `curses` module is included with Python.
-   - On Windows, install `windows-curses`:
-     ```bash
-     pip install windows-curses
-     ```
+On Windows use `copy` instead of `cp`.
 
-3. 📝 **Configure your devices:**
-   - Open `main.py` in a text editor.
-   - Edit the `DEVICES` list at the top of the file to include the names and IP addresses of your home lab devices.
+## 📝 Configure your devices
 
-4. ▶️ **Run the tool:**
-   ```bash
-   python3 main.py
-   ```
+Edit `devices.json`:
 
+```json
+{
+  "devices": [
+    { "name": "Router", "host": "192.168.1.1" },
+    { "name": "Proxmox host", "host": "192.168.1.10", "port": 8006 },
+    { "name": "Pi-hole", "host": "pihole.lan", "port": 80 }
+  ]
+}
+```
 
-## 🧑‍💻 Usage
+| Field  | Required | Meaning |
+|--------|----------|---------|
+| `name` | yes | Label shown in the results |
+| `host` | yes | IP address (IPv4/IPv6) or hostname |
+| `port` | no  | TCP port of a service on that device. If set, the device only counts as up when this port answers. |
 
-- ⬆️⬇️ Use the **arrow keys** to move between menu options.
-- ⏎ Press **Enter** to select an option.
-- When running the network checkup, the tool will display each device's status in real time.
-- After the scan, press any key to return to the main menu.
+`devices.json` is in `.gitignore`, so `git pull` never overwrites your list.
 
+## ▶️ Usage
 
-## 🛠️ Customization
+Interactive menu:
 
-- **Add or Remove Devices:**
-   - Edit the `DEVICES` list in `main.py` to match your network setup. Each entry is a tuple: (`Device Name`, `IP Address`).
+```bash
+python3 main.py
+```
 
-- ⏱️ **Change Ping Behavior:**
-   - The script uses a 1-second timeout for each ping. You can adjust this in the `ping_device` function if needed.
+- ⬆️⬇️ arrow keys or number keys `1`–`9` to choose, **Enter** to select
+- `q` or `Esc` to quit
 
-- 🧩 **Extend Functionality:**
-   - The code is modular and can be extended to include additional network checks, logging, or notifications.
-   - Contributions and feature requests are welcome via the [GitHub Issues page](https://github.com/NejcZorko007/HomeLabCheckupTool/issues).
+Script mode:
 
+```bash
+python3 main.py --once                     # plain text report
+python3 main.py --once --json              # JSON output
+python3 main.py --config /path/to/lab.json # use a different device list
+```
+
+Exit codes: `0` everything up, `1` something down, `2` config error.
+
+Example cron job that logs whenever something is down:
+
+```cron
+*/5 * * * * cd /opt/HomeLabCheckupTool && python3 main.py --once || python3 main.py --once >> down.log
+```
 
 ## 🐞 Troubleshooting
 
-- If you see errors related to `curses` on Windows, ensure you have installed `windows-curses`.
-- Make sure the `ping` command is available in your system's PATH.
-- Run the script in a terminal that supports ANSI colors for best results.
+- **Windows: `curses` error** → run `pip install -r requirements.txt`.
+- **Everything shows OFFLINE** → check that `ping` works in your terminal. Some devices and firewalls block ping. For those, add a `port` so the service is checked instead.
+- **Colors look wrong** → use a terminal with color support (Windows Terminal, any modern Linux/macOS terminal).
 
+## 🤝 Contributing
+
+Ideas and bug reports are welcome on the [Issues page](https://github.com/NejcZorko007/HomeLabCheckupTool/issues).
 
 ## 📄 License
 
-Apache-2.0 Licence
+Apache License 2.0. See [LICENSE](LICENSE).

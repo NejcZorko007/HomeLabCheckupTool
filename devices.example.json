@@ -1,0 +1,9 @@
+{
+  "devices": [
+    { "name": "Router", "host": "192.168.1.1" },
+    { "name": "Proxmox host", "host": "192.168.1.10", "port": 8006 },
+    { "name": "Web Server", "host": "192.168.1.20", "port": 80 },
+    { "name": "NAS", "host": "192.168.1.30" },
+    { "name": "Internet (Google DNS)", "host": "8.8.8.8" }
+  ]
+}
